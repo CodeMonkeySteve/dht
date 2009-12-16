@@ -1,0 +1,10 @@
+= DHT
+
+A Ruby implementation of a Kademlia-style Distributed Hash Table.
+
+== Work-in-progress
+
+Author::    Steve Sloan (mailto:steve@finagle.org)
+Website::   http://github.com/CodeMonkeySteve/dht
+Copyright:: Copyright (c) 2009 Steve Sloan
+License::   MIT

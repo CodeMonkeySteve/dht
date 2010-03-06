@@ -1,26 +1,30 @@
 require 'spec_helper'
-require 'peer_table'
+require 'dht/peer_table'
 
 include DHT
 
 describe PeerTable do
-  before(:each) do
+  before do
     @key = Key.new(0)
     @table = PeerTable.new @key
     @buckets = @table.instance_variable_get(:@buckets)
   end
 
-  it 'computes the correct bucket' do
-    for bit in (0...(Key::Size*8))
-      @table.send( :bucket_for, @key.to_i | (1 << bit) ).should == @buckets[bit]
+  it 'errors with self key' do
+  end
+
+  it 'computes the correct bucket index' do
+    @table.send( :bucket_index_for, @key.to_i ).should be_nil
+    for bit in 0...PeerTable::NumBuckets
+      @table.send( :bucket_index_for, @key.to_i ^ (1 << bit) ).should == bit
     end
   end
 
   describe 'with lots of peers' do
     before(:each) do
-      @peers = (0...(Key::Size*8*2)).map do |n|
-        peer = Peer.new n.to_s
-        stub(peer).id {  Key.new(n+1)  }
+      @peers = (1..(PeerTable::NumBuckets*2)).map  do |n|
+        peer = Peer.new "http://#{n}"
+        stub(peer).key {  Key.new(n)  }
         @table.touch peer
       end
     end
@@ -49,7 +53,7 @@ describe PeerTable do
   end
 end
 
-describe PeerTable::Bucket do
+describe DHT::PeerTable::Bucket do
   before(:each) do
     @bucket = PeerTable::Bucket.new
   end

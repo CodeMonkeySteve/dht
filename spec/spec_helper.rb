@@ -1,11 +1,14 @@
-require 'rubygems'
-require 'spork'
-require 'rr'
-require 'factory_girl'
-require 'spec/autorun'
+begin
+  require File.expand_path( '../.bundle/environment', __FILE__ )
+rescue LoadError
+  require 'rubygems'
+  require 'bundler'
+  Bundler.setup
+  Bundler.require( :default, :test )
+end
 
 Spork.prefork do
-#  Dir[File.expand_path(File.join(File.dirname(__FILE__),'support','**','*.rb'))].each {|f| require f}
+  require 'spec/autorun'
 
   # rspec configuration
   Spec::Runner.configure do |config|

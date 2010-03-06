@@ -1,11 +1,9 @@
 require 'spec_helper'
-require 'key'
+require 'dht/key'
 
-include DHT
-
-describe Key do
-  before(:all) do
-    @key = Key.new "\v\356\307\265\352?\017\333\311]\r\324\177<[\302u\332\0000"
+describe DHT::Key do
+  before do
+    @key = DHT::Key.new "\v\356\307\265\352?\017\333\311]\r\324\177<[\302u\332\0000"
   end
 
   it 'initializes from a hex String' do
@@ -18,11 +16,12 @@ describe Key do
 
   it 'computes distance to another key' do
     k = @key.to_i
-    for x in (0..15)
-      @key.distance_to( k + x ).should == x
+
+    @key.distance_to( k ).should == 0
+    for bit in 0...(Key::Size*8)
+      mask = 1 << bit
+      @key.distance_to( k ^ mask ).should == mask
     end
-    @key.distance_to( k + 0b10000 ).should == 0b1110000
-    @key.distance_to( k | 0b11111111 ).should == 0b11001111
   end
 end
 

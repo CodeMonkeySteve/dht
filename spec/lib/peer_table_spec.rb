@@ -23,8 +23,7 @@ describe PeerTable do
   describe 'with lots of peers' do
     before(:each) do
       @peers = (1..(PeerTable::NumBuckets*2)).map  do |n|
-        peer = Peer.new "http://#{n}"
-        stub(peer).key {  Key.new(n)  }
+        peer = Peer.new n
         @table.touch peer
       end
     end
@@ -54,7 +53,7 @@ describe PeerTable do
 end
 
 describe DHT::PeerTable::Bucket do
-  before(:each) do
+  before  do
     @bucket = PeerTable::Bucket.new
   end
 

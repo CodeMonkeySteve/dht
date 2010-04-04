@@ -8,7 +8,7 @@ class PeerTable
   attr_reader :buckets
 
   def initialize( key )
-    @key = key
+    @key = key.kind_of?(Key) ? key : Key.new(key)
     @buckets = (0...NumBuckets).map {  Bucket.new  }
   end
 
@@ -19,7 +19,7 @@ class PeerTable
       next  if bucket.peers.empty?
       out.print( '[%03i]' % x )
       for peer in bucket.peers
-        out.puts "\t#{peer.url.inspect} #{peer.key.inspect} (d:#{peer.key.distance_to(@key)})"
+        out.puts "\t#{peer.key.inspect} (d:#{peer.key.distance_to(@key)})"
       end
       queue = bucket.instance_variable_get(:@queue)
       out.puts "\t+#{queue.size}"  if queue.any?
@@ -79,7 +79,7 @@ class PeerTable::Bucket
   end
 
   def touch( peer )
-    peer.updated_at = Time.now
+    peer.touch
     return  if @peers.include?(peer) || @queue.include?(peer)
     ((@peers.size < Size) ? @peers : @queue).push( peer )
     peer

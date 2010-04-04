@@ -1,7 +1,6 @@
 require 'set'
 require 'dht/peer_table'
 
-
 module DHT
 
 class Node < Peer
@@ -10,9 +9,9 @@ class Node < Peer
   attr_reader :peers
   delegate :key, :key=, :buckets, :to => :peers
 
-  def initialize( url, key = nil )
-    @peers = PeerTable.new nil
-    @values = Hash.new { |h, k|  h[k] = [] }
+  def initialize( key )
+    @peers = PeerTable.new key
+    @values = Hash.new { |h, k|  h[k] = Set.new }
     super
   end
 
@@ -22,12 +21,14 @@ class Node < Peer
   end
 
   def refresh( peer )
-    peers.each_key_to_refresh( peer.key ) { |key|  peers_for! key  }
+    peers.each_key_to_refresh( peer.key ) do |key|
+      peers_for! key
+    end
   end
 
   def inspect
     out = StringIO.new
-    out.puts "Node #{url.inspect} (#{key.inspect})"
+    out.puts "Node #{key.inspect}"
     out << "Peers:\n" << peers.inspect
     out << "Values:\n" << @values.map { |k, v| "#{k.inspect}: #{v.inspect}\n" }.join('')
     out.string
@@ -40,23 +41,42 @@ class Node < Peer
   end
 
   def store!( key, val )
+    copies = 0
+    peers = peers_for!( key )
+    for peer in peers
+      copies += 1  if peer.store( key, val )
+      break  if copies == Redundancy
+    end
+    copies
   end
 
-  def peers_for!( key )
+  def find_peers_for!( key, &peers_for )
     key = Key.new(key)  unless Key === key
-    peers, tried = peers_for( key ), Set.new
+    tried = Set.new
+    peers = peers_for.call self
 
     until peers.empty?
       peer = peers.shift
       tried.add peer
-
-      res = peer.peers_for( key )
-      res.reject! { |peer|  tried.include?(peer)  }
-      peers = (peers + res).sort_by { |p|  p.key.distance_to(key) }
+      new_peers = peers_for.call peer
+      new_peers.reject! { |p|  tried.include?(p)  }
+      peers = (peers + new_peers).sort_by { |p|  p.key.distance_to(key) }
     end
+    peers
+  end
+
+  def peers_for!( key )
+    find_peers_for!( key ) { |peer|  peer.peers_for( key )  }
   end
 
   def values_for!( key )
+    values = Set.new
+    peers = find_peers_for!( key ) do |peer|
+      new_values, new_peers = *peer.values_for( key )
+      values |= new_values
+      new_peers
+    end
+    [ values, peers ]
   end
 
   # incoming peer interface
@@ -77,14 +97,15 @@ class Node < Peer
   # FIND_NODE
   def peers_for( key )
     key = Key.new(key)  unless Key === key
-    peers.nearest_to key
+    peers.nearest_to( key )
   end
 
   # FIND_VALUE
   def values_for( key )
     key = Key.new(key)  unless Key === key
-    @values[key] || peers_for(key)
+    [ (@values[key] || []), peers_for( key ) ]
   end
 end
+
 
 end

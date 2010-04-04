@@ -1,8 +1,8 @@
-Factory.sequence :peer_url do |n|
-  "http://localhost:3000/#{n}/"
+Factory.sequence :peer_key do |n|
+  Key.new n
 end
 
 Factory.define :peer do |p|
-  p.url {  Factory.next :peer_url  }
+  p.key {  Factory.next :peer_key  }
 end
 

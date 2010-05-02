@@ -12,23 +12,27 @@ class PeerTable
     @buckets = (0...NumBuckets).map {  Bucket.new  }
   end
 
+  def all
+    @buckets.map(&:peers).flatten
+  end
+
   def inspect
     return [].inspect  if @buckets.all? { |b|  b.empty? }
     out = StringIO.new
     @buckets.each_with_index do  |bucket, x|
       next  if bucket.peers.empty?
-      out.print( '[%03i]' % x )
-      for peer in bucket.peers
-        out.puts "\t#{peer.key.inspect} (d:#{peer.key.distance_to(@key)})"
+       out.puts( '  [%03i]' % x )
+      for peer in bucket.peers.sort_by { |n|  n.key.distance_to(self.key) }
+        out.puts "    #{peer.key.inspect} (d:#{peer.key.distance_to(@key)})"
       end
       queue = bucket.instance_variable_get(:@queue)
-      out.puts "\t+#{queue.size}"  if queue.any?
+      out.puts "   +#{queue.size}"  if queue.any?
     end
     out.string
   end
 
   def nearest_to( key )
-    peers = @buckets.map { |b| b.peers }.flatten.sort_by { |peer|  peer.key.distance_to(key)  }[0...Bucket::Size]
+    peers = self.all.sort_by { |peer|  peer.key.distance_to(key)  }[0...Bucket::Size]
   end
 
   def touch( peer )
@@ -40,7 +44,7 @@ class PeerTable
       mask = 1 << idx
       rand_key = @key.to_i ^ mask ^ rand(mask)
 raise "Bad key: #{rand_key.inspect}"  unless bucket_index_for(rand_key) == idx
-      yield rand_key
+      yield Key.new(rand_key)
     end
   end
 

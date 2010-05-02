@@ -4,7 +4,7 @@ rescue LoadError
   require 'rubygems'
   require 'bundler'
   Bundler.setup
-  Bundler.require( :default, :test )
+  Bundler.require :default, :test
 end
 
 Spork.prefork do
@@ -14,6 +14,9 @@ Spork.prefork do
   Spec::Runner.configure do |config|
     config.mock_with :rr
   end
+
+  Factory.definition_file_paths = [ File.join( File.dirname(__FILE__), 'factories' ) ]
+  Factory.find_definitions
 
   # matchers
   Spec::Matchers.define :respond_with do |attributes|

@@ -4,7 +4,7 @@ rescue LoadError
   require 'rubygems'
   require 'bundler'
   Bundler.setup
-  Bundler.require( :default, :build )
+  Bundler.require :default, :test, :build
 end
 require 'rake/testtask'
 require 'rake/rdoctask'

@@ -11,6 +11,7 @@ def save! ; end  # FIXME: for factory_girl
   def initialize( key = nil )
     @key = key.nil? || key.kind_of?(Key) ? key : Key.new(key)
     @updated_at = nil
+    yield self  if block_given?
   end
 
   def touch

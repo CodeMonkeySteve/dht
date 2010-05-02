@@ -1,6 +1,13 @@
 source :gemcutter
 
+gem 'sinatra'
 gem 'activesupport', :require => 'active_support'
+gem 'haml'
+gem 'json'
+#gem 'em-synchrony'
+#gem 'rack'
+gem 'rack-fiber_pool'
+#gem 'thin'
 
 group :test do
   gem 'factory_girl', '~> 1.2.3'
@@ -11,5 +18,7 @@ end
 
 group :build do
   gem 'jeweler'
-  gem 'rake'
+#  gem 'rake'
 end
+
+gem 'ruby-debug19'

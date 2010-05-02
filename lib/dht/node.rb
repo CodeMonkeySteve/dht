@@ -4,15 +4,15 @@ require 'dht/peer_table'
 module DHT
 
 class Node < Peer
-  Redundancy = 10
-
-  attr_reader :peers
+  attr_reader :peers, :values
   delegate :key, :key=, :buckets, :to => :peers
 
-  def initialize( key )
+  def initialize( key, cache_size = nil )
     @peers = PeerTable.new key
     @values = Hash.new { |h, k|  h[k] = Set.new }
-    super
+    @cache_size = cache_size
+    super key
+    yield self  if block_given?
   end
 
   def bootstrap( peer )
@@ -27,11 +27,13 @@ class Node < Peer
   end
 
   def inspect
-    out = StringIO.new
-    out.puts "Node #{key.inspect}"
-    out << "Peers:\n" << peers.inspect
-    out << "Values:\n" << @values.map { |k, v| "#{k.inspect}: #{v.inspect}\n" }.join('')
-    out.string
+    self.key.inspect
+  end
+
+  def dump
+    puts "#{key.inspect}:"
+    @values.sort_by { |k, v|  k.distance_to(self.key) }.each { |k, v| puts "  #{k.inspect} (#{'%040x' % k.distance_to(self.key)}): #{v.to_a.join(', ')}" }
+#    puts peers.inspect
   end
 
   # outgoing peer interface
@@ -40,29 +42,15 @@ class Node < Peer
     peer.ping_from self
   end
 
-  def store!( key, val )
+  def store!( key, val, redundancy = nil )
+    redundancy += 1  if redundancy
     copies = 0
-    peers = peers_for!( key )
+    peers = [self] + peers_for!( key )
     for peer in peers
       copies += 1  if peer.store( key, val )
-      break  if copies == Redundancy
+      break  if redundancy && (copies >= redundancy)
     end
     copies
-  end
-
-  def find_peers_for!( key, &peers_for )
-    key = Key.new(key)  unless Key === key
-    tried = Set.new
-    peers = peers_for.call self
-
-    until peers.empty?
-      peer = peers.shift
-      tried.add peer
-      new_peers = peers_for.call peer
-      new_peers.reject! { |p|  tried.include?(p)  }
-      peers = (peers + new_peers).sort_by { |p|  p.key.distance_to(key) }
-    end
-    peers
   end
 
   def peers_for!( key )
@@ -76,7 +64,7 @@ class Node < Peer
       values |= new_values
       new_peers
     end
-    [ values, peers ]
+    [ values.to_a, peers ]
   end
 
   # incoming peer interface
@@ -88,24 +76,48 @@ class Node < Peer
   # STORE
   def store( key, val )
     key = Key.new(key)  unless Key === key
-
-    # FIXME: sized cache store
     @values[key] << val
+    if @cache_size
+      remove = @values.keys.sort_by { |k|  k.distance_to(self.key)  }.slice(@cache_size..-1)
+      return true  unless remove && remove.any?
+
+      remove.each { |k|  @values.delete(k) }
+      return !remove.include?( key )
+    end
+
     true
   end
 
   # FIND_NODE
   def peers_for( key )
     key = Key.new(key)  unless Key === key
-    peers.nearest_to( key )
+    peers.nearest_to( key ).to_a
   end
 
   # FIND_VALUE
   def values_for( key )
     key = Key.new(key)  unless Key === key
-    [ (@values[key] || []), peers_for( key ) ]
+    [ (@values[key].to_a || []), peers_for( key ) ]
+  end
+
+protected
+  def find_peers_for!( key, &peers_for )
+    key = Key.new(key)  unless Key === key
+    tried = Set.new
+    peers = peers_for.call self
+    until peers.empty?
+      peer = peers.shift
+
+      new_peers = peers_for.call peer
+      self.peers.touch peer
+      tried.add peer
+
+      new_peers.delete self
+      new_peers.reject! { |p|  tried.include?(p)  }
+      peers = (peers + new_peers).sort_by { |p|  p.key.distance_to(key) }
+    end
+    tried.to_a
   end
 end
-
 
 end

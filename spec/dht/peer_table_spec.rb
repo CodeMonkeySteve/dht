@@ -10,9 +10,6 @@ describe PeerTable do
     @buckets = @table.instance_variable_get(:@buckets)
   end
 
-  it 'errors with self key' do
-  end
-
   it 'computes the correct bucket index' do
     @table.send( :bucket_index_for, @key.to_i ).should be_nil
     for bit in 0...PeerTable::NumBuckets

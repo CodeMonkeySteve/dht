@@ -28,11 +28,18 @@ class Key
   end
 
   def ==( that )
-    @key == that.to_s
+    self.eql? that
   end
   def to_s
-    @key.to_s
+    @key
   end
+  def hash
+    @key.hash
+  end
+  def eql?( that )
+    @key == that.to_s
+  end
+
   def inspect
     to_s.unpack('H*').first
   end

@@ -1,29 +1,22 @@
 require 'set'
-require 'dht/peer_table'
+require 'dht/peer_cache'
+require 'dht/host_cache'
 
 module DHT
 
 class Node < Peer
-  attr_reader :peers, :values
-  delegate :key, :key=, :buckets, :to => :peers
+  attr_reader :peers, :hosts
 
-  def initialize( key, cache_size = nil )
-    @peers = PeerTable.new key
-    @values = Hash.new { |h, k|  h[k] = Set.new }
-    @cache_size = cache_size
-    super key
+  def initialize( url )
+    super
+    @peers = PeerCache.new self.key
+    @hosts = HostCache.new self.key
     yield self  if block_given?
   end
 
-  def bootstrap( peer )
-    ping! peer
-    refresh peer
-  end
-
-  def refresh( peer )
-    peers.each_key_to_refresh( peer.key ) do |key|
-      peers_for! key
-    end
+  def key=( key )
+    key = key.kind_of?(Key) ? key : Key.new(key)
+    @key = @peers.key = @hosts.key = key
   end
 
   def inspect
@@ -31,15 +24,20 @@ class Node < Peer
   end
 
   def dump
-    puts "#{key.inspect}:"
-    @values.sort_by { |k, v|  k.distance_to(self.key) }.each { |k, v| puts "  #{k.inspect} (#{'%040x' % k.distance_to(self.key)}): #{v.to_a.join(', ')}" }
-#    puts peers.inspect
+    puts "#{key.inspect}:",
+         "Peers: ", peers.inspect,
+         "Hosts: ", hosts.inspect
+  end
+
+  def bootstrap( peer )
+    ping! peer
+    peers_for! self.key
   end
 
   # outgoing peer interface
   def ping!( peer )
+    return  unless peer.ping_from(self)
     peers.touch peer
-    peer.ping_from self
   end
 
   def store!( key, val, redundancy = nil )
@@ -57,35 +55,28 @@ class Node < Peer
     find_peers_for!( key ) { |peer|  peer.peers_for( key )  }
   end
 
-  def values_for!( key )
-    values = Set.new
+  def hosts_for!( key )
+    hosts = Set.new
     peers = find_peers_for!( key ) do |peer|
-      new_values, new_peers = *peer.values_for( key )
-      values |= new_values
+      new_hosts, new_peers = *peer.hosts_for( key )
+      hosts |= new_hosts
       new_peers
     end
-    [ values.to_a, peers ]
+    [ hosts.to_a, peers ]
   end
 
   # incoming peer interface
   # PING
   def ping_from( peer )
     peers.touch peer
+    true
   end
 
   # STORE
-  def store( key, val )
+  def store( key, host )
     key = Key.new(key)  unless Key === key
-    @values[key] << val
-    if @cache_size
-      remove = @values.keys.sort_by { |k|  k.distance_to(self.key)  }.slice(@cache_size..-1)
-      return true  unless remove && remove.any?
-
-      remove.each { |k|  @values.delete(k) }
-      return !remove.include?( key )
-    end
-
-    true
+    host = Host.new(host)  unless Host === host
+    @hosts.touch key, host
   end
 
   # FIND_NODE
@@ -95,9 +86,9 @@ class Node < Peer
   end
 
   # FIND_VALUE
-  def values_for( key )
+  def hosts_for( key )
     key = Key.new(key)  unless Key === key
-    [ (@values[key].to_a || []), peers_for( key ) ]
+    [ (@hosts[key].to_a || []), peers_for( key ) ]
   end
 
 protected

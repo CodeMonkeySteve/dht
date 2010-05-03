@@ -5,25 +5,18 @@ module DHT
 class Peer
 def save! ; end  # FIXME: for factory_girl
 
-  attr_accessor :key
-  attr_reader :updated_at
+  attr_reader :url, :key, :active_at
 
-  def initialize( key = nil )
-    @key = key.nil? || key.kind_of?(Key) ? key : Key.new(key)
-    @updated_at = nil
-    yield self  if block_given?
+  def initialize( url )
+    @url, @key = url, Key.for_content(url)
+    @active_at = nil
   end
 
   def touch
-    @updated_at = Time.now
+    @active_at = Time.now
   end
-#   def url=( url )
-#     @url = url
-#     self.key ||= Key.for_content(@url)  if @url
-#   end
 
   # peer interface
-
   # PING
   def ping_from( peer )
     raise NotImplemenedError

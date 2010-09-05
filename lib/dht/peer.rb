@@ -8,7 +8,12 @@ def save! ; end  # FIXME: for factory_girl
   attr_reader :url, :key, :active_at
 
   def initialize( url )
-    @url, @key = url, Key.for_content(url)
+    @url = Addressable::URI.parse(url)
+    @url.port = nil  if @url.port == 80
+    @url.path = '/'  if @url.path.blank?
+    host_with_port = @url.host
+    host_with_port += ":#{@url.port}"  if @url.port
+    @key = Key.for_content(host_with_port + @url.path)
     @active_at = nil
   end
 

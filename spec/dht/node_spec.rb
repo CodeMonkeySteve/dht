@@ -61,7 +61,8 @@ describe Node do
   describe 'A node on a 5x5 network' do
     before do
       @nodes = (0...5).map  do |n|
-        Node.new( "http://#{n}" ) { |n|
+        url = "http://#{(n+2)**2}"  # fuzzed for maximum key distribution (i.e. 24, below)
+        Node.new( url ) { |n|
           n.hosts.max_keys = 5
         }
       end
@@ -74,7 +75,7 @@ describe Node do
       25.times do |n|
         stored += 1  if @root.store!( n, n, 5 ).nonzero?
       end
-      stored.should >= 23
+      stored.should >= 24
     end
   end
 end

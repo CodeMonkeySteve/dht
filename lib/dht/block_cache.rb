@@ -29,7 +29,6 @@ class BlockCache
   end
 
   def refresh
-
   end
 end
 

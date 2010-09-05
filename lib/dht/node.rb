@@ -41,6 +41,7 @@ class Node < Peer
   end
 
   def store!( key, val, redundancy = nil )
+    key = Key.for_content(key.to_s)  unless Key === key
     redundancy += 1  if redundancy
     copies = 0
     peers = [self] + peers_for!( key )

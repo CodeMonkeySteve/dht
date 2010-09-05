@@ -72,8 +72,7 @@ describe Node do
     it 'stores and retrieves hosts at capacity' do
       stored = 0
       25.times do |n|
-        key = Key.for_content(n.to_s)
-        stored += 1  if @root.store!( key, n, 5 ).nonzero?
+        stored += 1  if @root.store!( n, n, 5 ).nonzero?
       end
       stored.should >= 23
     end

@@ -1,39 +1,13 @@
-begin
-  require File.expand_path( '../.bundle/environment', __FILE__ )
-rescue LoadError
-  require 'rubygems'
-  require 'bundler'
-  Bundler.setup
-  Bundler.require :default, :test
-end
+ENV['RAILS_ENV'] ||= 'test'
+Bundler.require(:default, :test) if defined?(Bundler)
+require 'spork'
 
 Spork.prefork do
-  require 'spec/autorun'
+  Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
 
   # rspec configuration
-  Spec::Runner.configure do |config|
-    config.mock_with :rr
-  end
-
-  Factory.definition_file_paths = [ File.join( File.dirname(__FILE__), 'factories' ) ]
-  Factory.find_definitions
-
-  # matchers
-  Spec::Matchers.define :respond_with do |attributes|
-    match do |obj|
-      attributes.all?  do |k, v|
-        @method = k.to_sym
-        @expect, @actual = v, obj.send(@method)
-        @expect == @actual
-      end
-    end
-    failure_message_for_should do |obj|
-      "expected: #{@expect.inspect},\n" +
-      "     got: #{@actual.inspect} (calling #{@method})"
-    end
-    failure_message_for_should_not do |obj|
-      "expected not: #{@expect.inspect} (calling #{@method})"
-    end
+  Rspec.configure do |config|
+    config.mock_with :rspec
   end
 end
 

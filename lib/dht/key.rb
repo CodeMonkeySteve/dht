@@ -13,7 +13,9 @@ class Key
 
   def initialize( key )
     @key =
-      if Integer === key
+      if Key === key
+        key.to_binary
+      elsif Integer === key
         @key_i = key
         k = @key_i.to_s(16)
         [('0' * ((Size * 2) - k.size)) + k].pack('H*')
@@ -30,21 +32,28 @@ class Key
   def ==( that )
     self.eql? that
   end
-  def to_s
+  def to_binary
     @key
+  end
+  def to_s
+    to_binary.unpack('H*').first
   end
   def hash
     @key.hash
   end
   def eql?( that )
-    @key == that.to_s
+    if Key === that
+      @key == that.to_binary
+    else
+      @key.to_s == that.to_s
+    end
   end
 
   def inspect
-    to_s.unpack('H*').first
+    to_s
   end
   def to_i
-    @key_i ||= eval( '0x'+to_s.unpack('H*').first )
+    @key_i ||= eval( '0x' + self.to_s )
   end
 
   def distance_to( that )

@@ -1,9 +1,11 @@
 require 'spec_helper'
 require 'dht/key'
 
-describe DHT::Key do
+include DHT
+
+describe Key do
   before do
-    @key = DHT::Key.new "\v\356\307\265\352?\017\333\311]\r\324\177<[\302u\332\0000"
+    @key = Key.new "\v\xEE\xC7\xB5\xEA?\x0F\xDB\xC9]\r\xD4\x7F<[\xC2u\xDA\x000"
   end
 
   it 'initializes from a hex String' do

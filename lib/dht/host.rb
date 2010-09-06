@@ -15,6 +15,7 @@ class Host
 
   def touch
     @active_at = Time.now
+    self
   end
 end
 

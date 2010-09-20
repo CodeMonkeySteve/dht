@@ -9,10 +9,10 @@ describe Node do
       @root = Node.new 'http://0'
     end
 
-    it 'stores a host' do
-      key, host = Key.new(1), Host.new('http://foo')
-      @root.store key, host
-      @root.hosts_for(key).should == [[host], []]
+    it 'stores a value' do
+      key, value = Key.new(1), 'http://foo'
+      @root.store key, value
+      @root.values_for(key).should == [[value], []]
     end
 
     it 'bootstraps a new node' do
@@ -40,21 +40,21 @@ describe Node do
       @root.peers.all.should == [@node_2, @node]
     end
 
-    it 'stores and retrieve local hosts' do
-      key, host = Key.for_content('foo'), Host.new('http://bar')
-      @root.store( key, host ).should be_true
-      @root.hosts.should == {key => [host]}
+    it 'stores and retrieve local values' do
+      key, value = Key.for_content('foo'), 'bar'
+      @root.store( key, value ).should be_true
+      @root.values.to_a.should == [{key => value}]
 
-      hosts, peers = @root.hosts_for( key )
-      hosts.to_a.should == [host]
+      values, peers = @root.values_for( key )
+      values.to_a.should == [value]
       peers.to_a.should == [@node]
     end
 
-    it 'stores hosts across the network' do
-      key, host = Key.for_content('foo'), Host.new('http://bar')
-      @root.store!( key, host ).should == 2
-      @root.hosts.should == {key => [host]}
-      @node.hosts.should == {key => [host]}
+    it 'stores values across the network' do
+      key, value = Key.for_content('foo'), 'bar'
+      @root.store!( key, value ).should == 2
+      @root.values.to_a.should == [{key => value}]
+      @node.values.to_a.should == [{key => value}]
     end
   end
 
@@ -63,14 +63,14 @@ describe Node do
       @nodes = (0...5).map  do |n|
         url = "http://#{(n+2)**2}"  # fuzzed for maximum key distribution (i.e. 24, below)
         Node.new( url ) { |n|
-          n.hosts.max_keys = 5
+          n.values.max_keys = 5
         }
       end
       @root = @nodes.first
       @nodes[1..-1].each { |node|  node.bootstrap @root  }
     end
 
-    it 'stores and retrieves hosts at capacity' do
+    it 'stores and retrieves values at capacity' do
       stored = 0
       25.times do |n|
         stored += 1  if @root.store!( n, n, 5 ).nonzero?

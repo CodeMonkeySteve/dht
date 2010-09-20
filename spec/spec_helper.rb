@@ -3,6 +3,9 @@ Bundler.require(:default, :test) if defined?(Bundler)
 require 'spork'
 
 Spork.prefork do
+  require 'rack/test'
+  require 'rack_ext'
+
   Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
 
   # rspec configuration

@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+$LOAD_PATH << File.dirname(__FILE__)+'/..' << File.dirname(__FILE__)+'/../lib'
+
+require 'bundler'
+Bundler.setup
+Bundler.require
+
+require 'optparse'
+
+DefaultUrl = Addressable::URI.parse('http://localhost:3000/').freeze
+
+opts = OptionParser.new do |opts|
+  opts.banner = <<BANNER
+Distributed Hash Table (DHT) node
+
+Usage:
+    dht_node [options] [hostname][:port][/prefix]
+    defaults:
+      hostname  #{DefaultUrl.host}
+      port      #{DefaultUrl.port}
+      prefix    #{DefaultUrl.path}
+BANNER
+#   opts.on('-p', "--fast-start","Do not run full tests at start") { options[:no_full_after_start] = true }
+#   opts.on("-c", "--no-full-after-failed","Do not run full tests after failed test passed") { options[:no_full_after_failed] = true }
+#   opts.on("-v", "--verbose","Be verbose. Prints files that autotest doesn't know how to map to tests") { options[:verbose] = true }
+#   opts.on("-q", "--quiet","Be quiet.") { options[:quiet] = true }
+#   opts.on("-r", "--rc CONFIG", String, "Path to config file. (Defaults to ~/.autotest or current_dir/.autotest)") do |opt|
+#     options[:rc] = opt
+#   end
+  opts.on("-h", "--help","Show this.") { puts opts;exit }
+end
+opts.parse!
+
+url = DefaultUrl.dup
+url.merge Addressable::URI.parse(ARGV.first)  if ARGV.first
+
+require 'rack_ext'
+require 'rack/server'
+require 'dht/ping_server'
+require 'dht/peer_server'
+require 'dht/value_server'
+require 'server/ui_server'
+
+node = DHT::Node.new url
+
+node.store DHT::Key.for_content('foo'), 'bar'
+node.store DHT::Key.for_content('foo'), 'baaz'
+
+Rack::Server.start( :server => 'thin', :Host => url.host, :Port => url.port, :app => Rack::Builder.new  do
+  use Rack::Reloader
+  use Rack::FiberPool
+
+  use DHT::PingServer, node   # catch-all to respond to root path with something
+  use DHT::PeerServer, node
+#  use DHT::ValueServer, node
+  run DHT::UIServer
+end )

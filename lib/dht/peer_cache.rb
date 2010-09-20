@@ -21,6 +21,14 @@ class PeerCache
     out.string
   end
 
+  def from_hashes( hashes )
+    @peers = hashes.map { |hash|  Peer.from_hash(hash) }
+  end
+
+  def to_hash
+    @peers.map(&:to_hash)
+  end
+
   def all
     @peers.to_a
   end
@@ -29,6 +37,9 @@ class PeerCache
     peer.touch
     @peers.delete peer
     @peers.unshift peer
+  end
+
+  def <<( peer )
   end
 
   def nearest_to( key )

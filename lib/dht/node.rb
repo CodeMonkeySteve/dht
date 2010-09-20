@@ -1,22 +1,22 @@
 require 'set'
 require 'dht/peer_cache'
-require 'dht/host_cache'
+require 'dht/value_cache'
 
 module DHT
 
 class Node < Peer
-  attr_reader :peers, :hosts
+  attr_reader :peers, :values
 
   def initialize( url )
     super
     @peers = PeerCache.new self.key
-    @hosts = HostCache.new self.key
+    @values = ValueCache.new self.key
     yield self  if block_given?
   end
 
   def key=( key )
     key = key.kind_of?(Key) ? key : Key.new(key)
-    @key = @peers.key = @hosts.key = key
+    @key = @peers.key = @values.key = key
   end
 
   def inspect
@@ -26,7 +26,7 @@ class Node < Peer
   def dump
     puts "#{key.inspect}:",
          "Peers: ", peers.inspect,
-         "Hosts: ", hosts.inspect
+         "Values: ", values.inspect
   end
 
   def bootstrap( peer )
@@ -40,13 +40,13 @@ class Node < Peer
     peers.touch peer
   end
 
-  def store!( key, val, redundancy = nil )
+  def store!( key, value, redundancy = nil )
     key = Key.for_content(key.to_s)  unless Key === key
     redundancy += 1  if redundancy
     copies = 0
     peers = [self] + peers_for!( key )
     for peer in peers
-      copies += 1  if peer.store( key, val )
+      copies += 1  if peer.store( key, value )
       break  if redundancy && (copies >= redundancy)
     end
     copies
@@ -56,14 +56,31 @@ class Node < Peer
     find_peers_for!( key ) { |peer|  peer.peers_for( key )  }
   end
 
-  def hosts_for!( key )
-    hosts = Set.new
+  def values_for!( key )
+    values = Set.new
     peers = find_peers_for!( key ) do |peer|
-      new_hosts, new_peers = *peer.hosts_for( key )
-      hosts |= new_hosts
+      new_values, new_peers = *peer.values_for( key )
+      values |= new_values
       new_peers
     end
-    [ hosts.to_a, peers ]
+    [ values.to_a, peers ]
+  end
+
+  # serialization
+  def load( path )
+    return false  unless File.exists?(path)
+    data = JSON.parse File.read(path)
+    @peers.from_hashes data['peers']
+    @values.from_hash data['values']
+  end
+
+  def save( path )
+    File.open(path, 'w') do |io|
+      io.print JSON.generate({
+        :peers => @peers.to_hashes,
+        :values => @values.to_hash,
+      }) + "\n"
+    end
   end
 
   # incoming peer interface
@@ -74,10 +91,9 @@ class Node < Peer
   end
 
   # STORE
-  def store( key, host )
+  def store( key, value )
     key = Key.new(key)  unless Key === key
-    host = Host.new(host)  unless Host === host
-    @hosts.touch key, host
+    @values.touch key, value
   end
 
   # FIND_NODE
@@ -87,9 +103,9 @@ class Node < Peer
   end
 
   # FIND_VALUE
-  def hosts_for( key )
+  def values_for( key )
     key = Key.new(key)  unless Key === key
-    [ (@hosts[key].to_a || []), peers_for( key ) ]
+    [ @values.by_key[key].map(&:value), peers_for( key ) ]
   end
 
 protected

@@ -8,6 +8,8 @@ class PeerCache
   attr_accessor :key, :max_peers
   attr_reader :peers
 
+  delegate :to_a, :to => :peers
+
   def initialize( key, max_peers = nil )
     @key, @max_peers = key, max_peers
     @peers = []
@@ -29,17 +31,20 @@ class PeerCache
     @peers.map(&:to_hash)
   end
 
-  def all
-    @peers.to_a
+  def add( peer )
+    return  if peer.key == self.key
+    if @peers.include? peer
+      @peers.delete peer
+    else
+      puts "New peer: #{peer.url} (#{peer.key})"
+    end
+    @peers.unshift peer
+    peer
   end
 
   def touch( peer )
+    add peer
     peer.touch
-    @peers.delete peer
-    @peers.unshift peer
-  end
-
-  def <<( peer )
   end
 
   def nearest_to( key )

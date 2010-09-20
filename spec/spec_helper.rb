@@ -5,6 +5,7 @@ require 'spork'
 Spork.prefork do
   require 'rack/test'
   require 'rack_ext'
+  require 'dht/peer'
 
   Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
 

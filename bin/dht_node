@@ -6,52 +6,40 @@ Bundler.setup
 Bundler.require
 
 require 'optparse'
+require 'rack_ext'
+require 'rack/server'
+require 'dht/peer_server'
+require 'dht/value_server'
+require 'server/ui_server'
 
-DefaultUrl = Addressable::URI.parse('http://localhost:3000/').freeze
+DefaultUrl = Addressable::URI.parse('http://localhost:3000').freeze
 
 opts = OptionParser.new do |opts|
   opts.banner = <<BANNER
 Distributed Hash Table (DHT) node
 
 Usage:
-    dht_node [options] [hostname][:port][/prefix]
+    dht_node [options] [local_url] [peer_url ...]
     defaults:
-      hostname  #{DefaultUrl.host}
-      port      #{DefaultUrl.port}
-      prefix    #{DefaultUrl.path}
+      local_url: #{DefaultUrl}
 BANNER
-#   opts.on('-p', "--fast-start","Do not run full tests at start") { options[:no_full_after_start] = true }
-#   opts.on("-c", "--no-full-after-failed","Do not run full tests after failed test passed") { options[:no_full_after_failed] = true }
-#   opts.on("-v", "--verbose","Be verbose. Prints files that autotest doesn't know how to map to tests") { options[:verbose] = true }
-#   opts.on("-q", "--quiet","Be quiet.") { options[:quiet] = true }
-#   opts.on("-r", "--rc CONFIG", String, "Path to config file. (Defaults to ~/.autotest or current_dir/.autotest)") do |opt|
-#     options[:rc] = opt
-#   end
-  opts.on("-h", "--help","Show this.") { puts opts;exit }
+  opts.on( '-h', '--help', 'Show this.' ) { puts opts ; exit }
 end
 opts.parse!
 
-url = DefaultUrl.dup
-url.merge Addressable::URI.parse(ARGV.first)  if ARGV.first
+url = Addressable::URI.parse(ARGV.shift) || DefaultUrl
+url.path = '/'  if url.path.blank?
 
-require 'rack_ext'
-require 'rack/server'
-require 'dht/ping_server'
-require 'dht/peer_server'
-require 'dht/value_server'
-require 'server/ui_server'
-
+puts "Starting node at #{url}"
 node = DHT::Node.new url
-
-node.store DHT::Key.for_content('foo'), 'bar'
-node.store DHT::Key.for_content('foo'), 'baaz'
+for peer_url in ARGV
+  node.peers.add DHT::Peer.new(peer_url)
+end
 
 Rack::Server.start( :server => 'thin', :Host => url.host, :Port => url.port, :app => Rack::Builder.new  do
   use Rack::Reloader
   use Rack::FiberPool
-
-  use DHT::PingServer, node   # catch-all to respond to root path with something
   use DHT::PeerServer, node
-#  use DHT::ValueServer, node
+  use DHT::ValueServer, node
   run DHT::UIServer
 end )

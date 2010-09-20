@@ -18,9 +18,9 @@ describe Node do
     it 'bootstraps a new node' do
       @node = Node.new 'http://1'
       @node.bootstrap @root
-      @node.peers.all.should == [@root]
 
-      @root.peers.all.should == [@node]
+      @node.peers.to_a.should == [@root]
+      @root.peers.to_a.should == [@node]
     end
   end
 
@@ -29,15 +29,16 @@ describe Node do
       @root = Node.new 'http://0'
       @node = Node.new 'http://1'
       @node.bootstrap @root
-      @node.peers.all.should == [@root]
+
+      @node.peers.to_a.should == [@root]
     end
 
     it 'bootstraps a new node' do
       @node_2 = Node.new 'http://2'
       @node_2.bootstrap @root
-      @node_2.peers.all.should == [@node, @root]
 
-      @root.peers.all.should == [@node_2, @node]
+      @node_2.peers.to_a.should == [@node, @root]
+      @root.peers.to_a.should == [@node_2, @node]
     end
 
     it 'stores and retrieve local values' do
@@ -45,7 +46,7 @@ describe Node do
       @root.store( key, value ).should be_true
       @root.values.to_a.should == [{key => value}]
 
-      values, peers = @root.values_for( key )
+      values, peers = @root.values_for( key, @node )
       values.to_a.should == [value]
       peers.to_a.should == [@node]
     end
@@ -67,7 +68,7 @@ describe Node do
         }
       end
       @root = @nodes.first
-      @nodes[1..-1].each { |node|  node.bootstrap @root  }
+      @nodes[1..-1].each { |node|  node.bootstrap @root }
     end
 
     it 'stores and retrieves values at capacity' do

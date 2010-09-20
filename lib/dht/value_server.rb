@@ -14,6 +14,9 @@ class ValueServer
 
   def call( env )
     @env, @request = env, Rack::Request.new(env)
+    if peer_url = @env['HTTP_X_PEER_URL']
+      @peer = Peer.new(peer_url)
+    end
     return  @app.call(env)  unless @request.accept.include?('application/json')
 
     prefix = @opts[:prefix]
@@ -35,6 +38,7 @@ class ValueServer
 
   # value index
   def index
+    @node.peers.touch @peer
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
       [ JSON.generate(@node.values.to_a), "\n" ] ]
   end
@@ -42,7 +46,7 @@ class ValueServer
   # FIND_VALUE
   def find( key )
     key = Key.new(key) rescue Key.for_content(params[:key])
-    values, peers = @node.values_for key
+    values, peers = @node.values_for key, @peer
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
       [ JSON.generate({ ValueCache::TypeName.pluralize => values, :peers => peers.map(&:to_hash) }), "\n" ] ]
   end
@@ -50,7 +54,7 @@ class ValueServer
   # STORE
   def store( key, values )
     return  [ 406, {}, 'Not Acceptable']  unless @request.content_type == 'application/json'
-    #return  [ 403, {}, 'Missing Peer URL' ]  unless @peer
+#return  [ 403, {}, 'Missing Peer URL' ]  unless @peer
 
     key = Key.new(key) rescue Key.for_content(params[:key])
     values = JSON.parse values
@@ -58,7 +62,7 @@ class ValueServer
 
     num_stored = 0
     for value in values
-      num_stored += 1  if @node.store( key, value )
+      num_stored += 1  if @node.store( key, value, @peer )
     end
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
       [ JSON.generate({ :stored => num_stored }), "\n" ] ]

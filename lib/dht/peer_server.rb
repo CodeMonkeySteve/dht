@@ -14,6 +14,9 @@ class PeerServer
 
   def call( env )
     @env, @request = env, Rack::Request.new(env)
+    if peer_url = @env['HTTP_X_PEER_URL']
+      @peer = Peer.new(peer_url)
+    end
     return  @app.call(env)  unless @request.accept.include?('application/json')
 
     prefix = @opts[:prefix]
@@ -27,16 +30,17 @@ class PeerServer
 
   # peer index
   def index
+    @node.peers.touch @peer
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate(@node.peers.to_hash), "\n" ] ]
+      [ JSON.generate(@node.peers.to_hash) + "\n" ] ]
   end
 
   # FIND_NODE
   def find( key )
     key = Key.new(key) rescue Key.for_content(key)
-    peers = @node.peers_for key
+    peers = @node.peers_for key, @peer
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate(peers.map(&:to_hash)), "\n" ] ]
+      [ JSON.generate(peers.map(&:to_hash)) + "\n" ] ]
   end
 end
 

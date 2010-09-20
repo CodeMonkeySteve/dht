@@ -10,6 +10,7 @@ class Node < Peer
 
   def initialize( url )
     super
+    $log.puts "Starting node at #{url}"
     @peers = PeerCache.new self.key
     @values = ValueCache.new self.key
     @poller = Poller.new(self).start

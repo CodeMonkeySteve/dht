@@ -36,7 +36,7 @@ class PeerCache
     if @peers.include? peer
       @peers.delete peer
     else
-      puts "New peer: #{peer.url} (#{peer.key})"
+      $log.puts "New peer: #{peer.url} (#{peer.key})"
     end
     @peers.unshift peer
     peer

@@ -1,3 +1,5 @@
+$LOAD_PATH << File.dirname(__FILE__)+'/..'
+
 ENV['RAILS_ENV'] ||= 'test'
 Bundler.require(:default, :test) if defined?(Bundler)
 require 'spork'
@@ -13,6 +15,11 @@ Spork.prefork do
   Rspec.configure do |config|
     config.mock_with :rspec
   end
+
+  class TestLogger
+    def puts( *args ) end
+  end
+  $log = TestLogger.new
 end
 
 Spork.each_run do

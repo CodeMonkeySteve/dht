@@ -12,6 +12,9 @@ require 'dht/peer_server'
 require 'dht/value_server'
 require 'server/ui_server'
 
+$log = $stderr
+$log.sync = true
+
 DefaultUrl = Addressable::URI.parse('http://localhost:3000').freeze
 
 opts = OptionParser.new do |opts|
@@ -27,10 +30,9 @@ BANNER
 end
 opts.parse!
 
-url = Addressable::URI.parse(ARGV.shift) || DefaultUrl
+url = Addressable::URI.parse(ARGV.shift) || DefaultUrl.dup
 url.path = '/'  if url.path.blank?
 
-puts "Starting node at #{url}"
 node = DHT::Node.new url
 for peer_url in ARGV
   node.peers.add DHT::Peer.new(peer_url)

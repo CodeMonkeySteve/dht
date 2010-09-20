@@ -49,7 +49,7 @@ end
   def refresh( obj )
     case obj
       when Peer
-        puts "Refresh: #{obj.url} (#{obj.key})"
+        $log.puts "Refresh: #{obj.url} (#{obj.key})"
         obj.peers_for( node.key, node )
 
       when ValueCache::Entry

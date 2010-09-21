@@ -1,15 +1,19 @@
 require 'dht/node'
+require 'dht/peer_server'
 
 module DHT
 
 class ValueServer
-  attr_reader :app, :node, :opts
+  PeersName = ::PeerServer::PeersName
+  ValueName = 'value'.freeze
+  ValuesName = ValueName.pluralize.freeze
+  Path = "/#{ValuesName}".freeze
 
-  def initialize( app, node, opts = {} )
+  attr_reader :app, :node
+
+  def initialize( app, node )
     @app, @node = app, node
-    @opts = {
-      :prefix => '/values',
-    }.update opts
+    Peer.send :include, PeerInterface
   end
 
   def call( env )
@@ -19,17 +23,16 @@ class ValueServer
     end
     return  @app.call(env)  unless @request.accept.include?('application/json')
 
-    prefix = @opts[:prefix]
     case @request.path_info
-      when %r(#{prefix}/?$)
+      when %r(#{Path}/?$)
         index
-      when %r(#{prefix}/(.+)$)
+      when %r(#{Path}/(.+)$)
         if @request.get?
           find( $1 )
         elsif @request.post?
           store( $1, JSON.parse(@request.body.read) )
         else
-          [ 404, {}, [] ]
+          [404, {}, []]
         end
       else
         @app ? @app.call(env) : [404, {}, []]
@@ -39,7 +42,7 @@ class ValueServer
   # value index
   def index
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate({ ValueCache::TypeName.pluralize => @node.values.to_a }), "\n" ] ]
+      [ JSON.generate({ ValuesName => @node.values.to_a }) + "\n" ] ]
   end
 
   # FIND_VALUE
@@ -47,12 +50,14 @@ class ValueServer
     key = Key.new(key) rescue Key.for_content(key)
     values, peers = @node.send( (@request.params['r'] ? :values_for! : :values_for), key )
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate({ :key => key.to_s, ValueCache::TypeName.pluralize => values, :peers => peers.map(&:to_hash) }), "\n" ] ]
+      [ JSON.generate({ :key => key.to_s, ValuesName => values, PeersName => peers.map(&:to_hash) }) + "\n" ] ]
   end
 
   # STORE
   def store( key, values )
     return  [ 406, {}, 'Not Acceptable']  unless @request.content_type.split(';')[0] == 'application/json'
+
+# FIXME: authentication
 #return  [ 403, {}, 'Missing Peer URL' ]  unless @peer
 
     key = Key.new(key) rescue Key.for_content(key)
@@ -63,8 +68,30 @@ class ValueServer
       num_stored += 1  if @node.store( key, value )
     end
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate({ :key => key.to_s, :stored => num_stored }), "\n" ] ]
+      [ JSON.generate({ :key => key.to_s, :stored => num_stored }) + "\n" ] ]
+  end
+
+  module PeerInterface
+    # FIND_VALUE
+    def values_for( key, from_node )
+      req = EventMachine::HttpRequest.new("#{url}/#{ValuesName}/#{key.to_s}").
+            get( :head => { 'X-PEER-URL' => from_node.url.to_s, 'Accept' => 'application/json' } )
+      values, peers = JSON.parse(req.response).values_at(ValuesName, PeerServer::PeersName)
+      peers.map! { |hash|  Peer.new hash['url'], hash['active_at'] }
+      [ values, peers ]
+    end
+
+    # STORE
+    def store( key, val, from_node )
+      res = EventMachine::HttpRequest.new("#{url}/#{ValuesName}/#{key.to_s}").
+            post( :body => JSON.generate([val]), :head => { 'X-PEER-URL' => from_node.url.to_s, 'Accept' => 'application/json' } )
+      JSON.parse req.response
+
+# FIXME: error handling
+
+    end
   end
 end
+
 
 end

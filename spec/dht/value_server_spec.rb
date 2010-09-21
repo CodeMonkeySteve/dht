@@ -23,13 +23,13 @@ describe ValueServer do
 
   it 'returns a list of all values (index)' do
     @node.store( @key, @value )
-    get app.opts[:prefix]
+    get app.class::Path
     last_response.should be_ok
     last_response.body.strip.should == JSON.generate({ values: [{key: @key.to_s, value: @value}] })
   end
 
   it 'stores a value (STORE)' do
-    post "#{app.opts[:prefix]}/#{@key}", JSON.generate([@value]), 'CONTENT_TYPE' => 'application/json'
+    post "#{app.class::Path}/#{@key}", JSON.generate([@value]), 'CONTENT_TYPE' => 'application/json'
     last_response.should be_ok
     JSON.parse(last_response.body)['stored'].should == 1
     @node.peers.to_a.size.should == 1
@@ -38,7 +38,7 @@ describe ValueServer do
 
   it 'renders a list of values (FIND_VALUE)' do
     @node.store( @key, @value )
-    get "#{app.opts[:prefix]}/#{@key}"
+    get "#{app.class::Path}/#{@key}"
     last_response.should be_ok
     last_response.body.strip.should == JSON.generate({key: @key.to_s, values: [@value], peers: [@self_peer.to_hash]})
   end

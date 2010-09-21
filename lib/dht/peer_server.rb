@@ -3,13 +3,15 @@ require 'dht/node'
 module DHT
 
 class PeerServer
-  attr_reader :app, :node, :opts
+  PeerName = 'peer'.freeze
+  PeersName = PeerName.pluralize.freeze
+  Path = "/#{PeersName}".freeze
 
-  def initialize( app, node, opts = {} )
+  attr_reader :app, :node
+
+  def initialize( app, node )
     @app, @node = app, node
-    @opts = {
-      :prefix => '/peers',
-    }.update opts
+    Peer.send :include, PeerInterface
   end
 
   def call( env )
@@ -19,10 +21,9 @@ class PeerServer
     end
     return  @app.call(env)  unless @request.accept.include?('application/json')
 
-    prefix = @opts[:prefix]
     case @request.path_info
-      when %r(#{prefix}/?$)   then  index
-      when %r(#{prefix}/(.+)) then  find($1)
+      when %r(#{Path}/?$)   then  index
+      when %r(#{Path}/(.+)) then  find($1)
       else
         @app ? @app.call(env) : [404, {}, []]
     end
@@ -40,6 +41,25 @@ class PeerServer
     peers = @node.peers_for key
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
       [ JSON.generate(peers.map(&:to_hash)) + "\n" ] ]
+  end
+
+  module PeerInterface
+    def peers_for( key, from_node )
+      req = EventMachine::HttpRequest.new("#{url}#{Peer::Path}/#{key.to_s}").
+            get( :head => { 'X-PEER-URL' => from_node.url.to_s, 'Accept' => 'application/json' } )
+
+  # FIXME: error handling
+  #return nil  unless req.success
+
+      from_node.peers.touch self
+      peers = JSON.parse( req.response ).map do |hash|
+        peer = Peer.from_hash hash
+        raise "Peer key mismatch: #{hash['url']} has key #{hash['key']}, expected #{peer.key}"  unless peer.key.to_s == hash['key']
+        from_node.peers.add peer
+        peer
+      end
+      peers
+    end
   end
 end
 

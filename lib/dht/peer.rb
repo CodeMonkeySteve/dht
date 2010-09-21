@@ -38,42 +38,17 @@ class Peer
   # peer interface
   # FIND_NODE
   def peers_for( key, from_node )
-    req = EventMachine::HttpRequest.new("#{url}/peers/#{key.to_s}").
-          get( :head => headers(from_node) )
-
-# FIXME: error handling
-#return nil  unless req.success
-
-    from_node.peers.touch self
-    peers = JSON.parse( req.response ).map do |hash|
-      peer = Peer.from_hash hash
-      raise "Peer key mismatch: #{hash['url']} has key #{hash['key']}, expected #{peer.key}"  unless peer.key.to_s == hash['key']
-      from_node.peers.add peer
-      peer
-    end
-    peers
+    raise NotImplementedError
   end
 
   # FIND_VALUE
   def values_for( key, from_node )
-    req = EventMachine::HttpRequest.new("#{url}/#{ValueCache::TypeName.pluralize}/#{key.to_s}").
-          get( :head => headers(from_node) )
-    values, peers = JSON.parse(req.response).values_at('values', 'peers')
-    peers.map! { |hash|  Peer.new hash['url'], hash['active_at'] }
-    [ values, peers ]
+    raise NotImplementedError
   end
 
   # STORE
   def store( key, val, from_node )
-    res = EventMachine::HttpRequest.new("#{url}/#{ValueCache::TypeName.pluralize}/#{key.to_s}").
-          post( :body => JSON.generate([val]), :head => headers(from_node) )
-pp req
-    JSON.parse req.response
-  end
-
-protected
-  def headers( from_peer )
-   { 'X-PEER-URL' => from_peer.url.to_s, 'Accept' => 'application/json' }
+    raise NotImplementedError
   end
 end
 

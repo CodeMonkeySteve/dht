@@ -20,13 +20,13 @@ describe PeerServer do
   end
 
   it 'returns a list of all peers' do
-    get app.opts[:prefix]
+    get app.class::Path
     last_response.should be_ok
     last_response.body.strip.should == JSON.generate([@self_peer.to_hash])
   end
 
   it 'renders a list of peers (FIND_NODE)' do
-    get "#{app.opts[:prefix]}/#{@key}"
+    get "#{app.class::Path}/#{@key}"
     last_response.should be_ok
     last_response.body.strip.should == JSON.generate([@self_peer.to_hash])
   end

@@ -44,7 +44,7 @@ describe Node do
     it 'stores and retrieve local values' do
       key, value = Key.for_content('foo'), 'bar'
       @root.store( key, value ).should be_true
-      @root.values.to_a.should == [{key => value}]
+      @root.values.to_a.should == [{:key => key.to_s, :value => value}]
 
       values, peers = @root.values_for( key, @node )
       values.to_a.should == [value]
@@ -54,8 +54,8 @@ describe Node do
     it 'stores values across the network' do
       key, value = Key.for_content('foo'), 'bar'
       @root.store!( key, value ).should == 2
-      @root.values.to_a.should == [{key => value}]
-      @node.values.to_a.should == [{key => value}]
+      @root.values.to_a.should == [{:key => key.to_s, :value => value}]
+      @node.values.to_a.should == [{:key => key.to_s, :value => value}]
     end
   end
 

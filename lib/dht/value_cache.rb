@@ -16,7 +16,7 @@ class ValueCache
     end
 
     def to_hash
-      { key => value }
+      { :key => key.to_s, :value => value }
     end
 
     def touch
@@ -69,6 +69,7 @@ class ValueCache
       return nil  if removed.include? entry
     end
     @by_key[key] = entry
+    $log.puts '-'*100, 'Values:', self.inspect, '-'*100
     entry
   end
 end

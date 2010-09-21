@@ -23,7 +23,7 @@ class Peer
     host_with_port = @url.host
     host_with_port += ":#{@url.port}"  if @url.port
     @key = Key.for_content(host_with_port + @url.path)
-    @active_at = active_at
+    @active_at = active_at && ((Time === active_at) ? active_at : Time.parse(active_at))
   end
 
   def to_hash
@@ -40,6 +40,8 @@ class Peer
   def peers_for( key, from_node )
     req = EventMachine::HttpRequest.new("#{url}/peers/#{key.to_s}").
           get( :head => headers(from_node) )
+
+# FIXME: error handling
 #return nil  unless req.success
 
     from_node.peers.touch self
@@ -57,7 +59,8 @@ class Peer
     req = EventMachine::HttpRequest.new("#{url}/#{ValueCache::TypeName.pluralize}/#{key.to_s}").
           get( :head => headers(from_node) )
     values, peers = JSON.parse(req.response).values_at('values', 'peers')
-pp values, peers
+    peers.map! { |hash|  Peer.new hash['url'], hash['active_at'] }
+    [ values, peers ]
   end
 
   # STORE

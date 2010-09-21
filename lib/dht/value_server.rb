@@ -15,7 +15,7 @@ class ValueServer
   def call( env )
     @env, @request = env, Rack::Request.new(env)
     if peer_url = @env['HTTP_X_PEER_URL']
-      @peer = Peer.new(peer_url)
+      @node.peers.touch Peer.new(peer_url)
     end
     return  @app.call(env)  unless @request.accept.include?('application/json')
 
@@ -27,7 +27,7 @@ class ValueServer
         if @request.get?
           find( $1 )
         elsif @request.post?
-          store( $1, @request.body.read )
+          store( $1, JSON.parse(@request.body.read) )
         else
           [ 404, {}, [] ]
         end
@@ -38,34 +38,32 @@ class ValueServer
 
   # value index
   def index
-    @node.peers.touch @peer
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate(@node.values.to_a), "\n" ] ]
+      [ JSON.generate({ ValueCache::TypeName.pluralize => @node.values.to_a }), "\n" ] ]
   end
 
   # FIND_VALUE
   def find( key )
-    key = Key.new(key) rescue Key.for_content(params[:key])
-    values, peers = @node.values_for key, @peer
+    key = Key.new(key) rescue Key.for_content(key)
+    values, peers = @node.send( (@request.params['r'] ? :values_for! : :values_for), key )
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate({ ValueCache::TypeName.pluralize => values, :peers => peers.map(&:to_hash) }), "\n" ] ]
+      [ JSON.generate({ :key => key.to_s, ValueCache::TypeName.pluralize => values, :peers => peers.map(&:to_hash) }), "\n" ] ]
   end
 
   # STORE
   def store( key, values )
-    return  [ 406, {}, 'Not Acceptable']  unless @request.content_type == 'application/json'
+    return  [ 406, {}, 'Not Acceptable']  unless @request.content_type.split(';')[0] == 'application/json'
 #return  [ 403, {}, 'Missing Peer URL' ]  unless @peer
 
-    key = Key.new(key) rescue Key.for_content(params[:key])
-    values = JSON.parse values
+    key = Key.new(key) rescue Key.for_content(key)
     values = [values]  unless Array === values
 
     num_stored = 0
     for value in values
-      num_stored += 1  if @node.store( key, value, @peer )
+      num_stored += 1  if @node.store( key, value )
     end
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate({ :stored => num_stored }), "\n" ] ]
+      [ JSON.generate({ :key => key.to_s, :stored => num_stored }), "\n" ] ]
   end
 end
 

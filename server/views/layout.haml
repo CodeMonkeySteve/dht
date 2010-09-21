@@ -1,0 +1,20 @@
+!!! XML
+!!! 5
+%html{ :xmlns => 'http://www.w3.org/1999/xhtml', 'xml:lang' => 'en', :lang => 'en' }
+  %head
+    %meta{ 'http-equiv' => 'Content-Type',     :content => 'text/html; charset=utf-8' }/
+    %meta{ 'http-equiv' => 'Content-Language', :content => 'en-us' }/
+    %meta{ :name => 'author', :content => 'Steve Sloan' }/
+
+    %title DHT Node
+
+    %link{ :href => '/stylesheets/start/jquery-ui-1.8.4.custom.css', :media => 'screen', :rel => 'stylesheet', :type => 'text/css' }/
+    %link{ :href => '/application.css', :media => 'screen', :rel => 'stylesheet', :type => 'text/css' }/
+
+    - google = 'http://ajax.googleapis.com/ajax/libs'
+    %script{ :type => 'text/javascript', :src => "#{google}/jquery/1.4.2/jquery.js" }
+    %script{ :type => 'text/javascript', :src => "#{google}/jqueryui/1.8.4/jquery-ui.min.js" }
+    %script{ :type => 'text/javascript', :src => "/javascripts/application.js" }
+
+  %body
+    = yield

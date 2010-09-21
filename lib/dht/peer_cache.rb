@@ -18,7 +18,7 @@ class PeerCache
   def inspect
     out = StringIO.new
     for peer in @peers.sort_by { |peer|  peer.key.distance_to(self.key) }
-      out.puts "  #{peer.key.inspect} (#{'%040x' % peer.key.distance_to(self.key)})"
+      out.puts "  #{peer.url} #{peer.key.inspect} (#{'%040x' % peer.key.distance_to(self.key)})"
     end
     out.string
   end
@@ -35,10 +35,11 @@ class PeerCache
     return  if peer.key == self.key
     if @peers.include? peer
       @peers.delete peer
+      @peers.unshift peer
     else
-      $log.puts "New peer: #{peer.url} (#{peer.key})"
+      @peers.unshift peer
+      $log.puts '-'*100, 'Peers:', self.inspect, '-'*100
     end
-    @peers.unshift peer
     peer
   end
 

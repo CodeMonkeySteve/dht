@@ -64,6 +64,6 @@ end
     (@node.values.entries.map { |entry|  [ entry.active_at ? (entry.active_at + RefreshValueAfter) : now, entry ] } +
          @node.peers.to_a.map { |peer|   [ peer.active_at ?  (peer.active_at  + RefreshPeerAfter)  : now, peer ] })
     objs.
-      sort.first
+      sort_by(&:first).first
   end
 end

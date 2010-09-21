@@ -25,7 +25,7 @@ describe ValueServer do
     @node.store( @key, @value )
     get app.opts[:prefix]
     last_response.should be_ok
-    last_response.body.strip.should == JSON.generate([{@key => @value}])
+    last_response.body.strip.should == JSON.generate({ values: [{key: @key.to_s, value: @value}] })
   end
 
   it 'stores a value (STORE)' do
@@ -40,6 +40,6 @@ describe ValueServer do
     @node.store( @key, @value )
     get "#{app.opts[:prefix]}/#{@key}"
     last_response.should be_ok
-    last_response.body.strip.should == JSON.generate({values: [@value], peers: [@self_peer.to_hash]})
+    last_response.body.strip.should == JSON.generate({key: @key.to_s, values: [@value], peers: [@self_peer.to_hash]})
   end
 end

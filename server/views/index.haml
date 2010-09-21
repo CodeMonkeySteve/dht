@@ -1,0 +1,58 @@
+%h1 Peers
+#peers
+
+%h1 Values
+#values
+#new_value
+  %input.key{:type => 'text'}/
+  \=
+  %input.value{:type => 'text'}/
+  %button#add_value{ :onclick => 'add_value( $("#new_value .key")[0].value, $("#new_value .value")[0].value );' }
+    Add Value
+#find_value
+  %input.value{:type => 'text', :size => 40}/
+  %button{ :onclick => 'find_value( $("#find_value .value")[0].value );' }
+    Search Values
+
+:javascript
+  jQuery(document).ready( function(){
+    remote_call({ url: '/peers',  context: $('#peers'),  repeat: 10000 });
+
+    $('#peers'). bind( 'ajax:success', function(status, data, xhr) {  $(this).html(  peer_list_html( data ) );  });
+    $('#values').bind( 'ajax:success', function(status, data, xhr) {  $(this).html( value_list_html( data.key, data.values ) );  });
+    $('#new_value').bind( 'ajax:success', function(status, data, xhr) {  find_value( data.key );  });
+  });
+
+  function add_value( key, value ) {
+    remote_call({ url: '/values/'+key, type: 'POST', context: $('#add_value'),
+                  data: JSON.stringify([value]), contentType: 'application/json', processData: false });
+  }
+
+  function find_value( key ) {
+    remote_call({ url: "/values/"+key+"?r=1", context: $('#values') });
+  }
+
+  function peer_list_html( peers ) {
+    if ( peers.length == 0 ) {
+      return '<em>no peers</em>';
+    }
+    var html = '<ul> ';
+    for ( var i in peers ) {
+      var peer = peers[i];
+      html += '<li><a href="'+peer.url+'">'+peer.url+'</a> <span class="key">'+peer.key+'</span></li>';
+    }
+    return html += '</ul>';
+  }
+
+  function value_list_html( key, values ) {
+    if ( values.length == 0 ) {
+      return '<em>no values</em>';
+    }
+    var html = '<span class="key">'+key+'</span><br/>';
+    html += '<ul> ';
+    for ( var i in values ) {
+      var value = values[i];
+      html += '<li>'+value+'</li>';
+    }
+    return html += '</ul>';
+  }

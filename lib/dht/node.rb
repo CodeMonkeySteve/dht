@@ -59,7 +59,8 @@ class Node < Peer
     key = Key.for_content(key.to_s)  unless Key === key
     redundancy += 1  if redundancy
     copies = 0
-    peers = [self] + peers_for!( key )
+    peers = peers_for!( key )
+    peers << self  unless peers.include?(self)
     for peer in peers
       copies += 1  if peer.store( key, value )
       break  if redundancy && (copies >= redundancy)
@@ -86,7 +87,7 @@ class Node < Peer
   def peers_for( key, from_peer = nil )
     @peers.touch from_peer  if from_peer
     key = Key.new(key)  unless Key === key
-    peers.nearest_to( key ).to_a
+    peers.nearest_to( key )
   end
 
   # FIND_VALUE
@@ -106,7 +107,7 @@ class Node < Peer
 protected
   def find_peers_for!( key, &peers_for )
     key = Key.new(key)  unless Key === key
-    tried = Set.new
+    tried = Set.new [self]
     peers = peers_for.call self
     until peers.empty?
       peer = peers.shift
@@ -115,9 +116,12 @@ protected
       self.peers.touch peer
       tried.add peer
 
-      new_peers.delete self
-      new_peers.reject! { |p|  tried.include?(p)  }
-      peers = (peers + new_peers).sort_by { |p|  p.key.distance_to(key) }
+      new_peers.map! { |p|  self.peers.add(p) }
+      new_peers.reject! { |p|  p.blank? || tried.include?(p)  }
+
+      peers += new_peers
+      peers.uniq!
+      peers = peers.sort_by &:distance
     end
     tried.to_a
   end

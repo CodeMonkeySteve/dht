@@ -1,6 +1,14 @@
 GIT
-  remote: git://github.com/CodeMonkeySteve/em-synchrony.git
-  revision: 2da15fd330f67ad0a6112002b1b19619efdb8ac3
+  remote: git://github.com/Papipo/hassle.git
+  revision: 3a12feb7ae8c94acde7bdf1cc8a34bb89ab39f44
+  specs:
+    hassle (0.0.1)
+      haml
+      rack
+
+GIT
+  remote: git://github.com/igrigorik/em-synchrony.git
+  revision: e585afeeb262d2aeb2885f706c3afb4c2f0e4b6f
   specs:
     em-synchrony (0.1.5)
       eventmachine (>= 0.12.9)
@@ -11,11 +19,11 @@ GEM
     activesupport (3.0.0)
     addressable (2.2.1)
     daemons (1.1.0)
-    em-http-request (0.2.12)
+    em-http-request (0.2.14)
       addressable (>= 2.0.0)
       eventmachine (>= 0.12.9)
     eventmachine (0.12.10)
-    haml (3.0.18)
+    haml (3.0.21)
     i18n (0.4.1)
     json (1.4.6)
     multimap (1.1.2)
@@ -37,6 +45,7 @@ DEPENDENCIES
   em-synchrony!
   eventmachine (= 0.12.10)
   haml (~> 3.0.18)
+  hassle!
   i18n
   json
   multimap

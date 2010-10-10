@@ -45,11 +45,14 @@ class PeerServer
 
   module PeerInterface
     def peers_for( key, from_node )
-      req = EventMachine::HttpRequest.new("#{url}#{Peer::Path}/#{key.to_s}").
+      req = EventMachine::HttpRequest.new("#{url}#{PeerServer::Path}/#{key.to_s}").
             get( :head => { 'X-PEER-URL' => from_node.url.to_s, 'Accept' => 'application/json' } )
 
-  # FIXME: error handling
-  #return nil  unless req.success
+      if req.response_header.status.zero?
+        $log.puts 'Connection Failed'
+        @error_at = Time.now
+        return []
+      end
 
       from_node.peers.touch self
       peers = JSON.parse( req.response ).map do |hash|
@@ -61,6 +64,8 @@ class PeerServer
       peers
     end
   end
+
+  Peer.send :include, PeerInterface
 end
 
 end

@@ -3,17 +3,16 @@ require 'dht/peer_server'
 
 module DHT
 
-class ValueServer
+class HostServer
   PeersName = ::PeerServer::PeersName
-  ValueName = 'value'.freeze
-  ValuesName = ValueName.pluralize.freeze
-  Path = "/#{ValuesName}".freeze
+  HostName = 'host'.freeze
+  HostsName = HostName.pluralize.freeze
+  Path = "/#{HostsName}".freeze
 
   attr_reader :app, :node
 
   def initialize( app, node )
     @app, @node = app, node
-    Peer.send :include, PeerInterface
   end
 
   def call( env )
@@ -39,33 +38,33 @@ class ValueServer
     end
   end
 
-  # value index
+  # host index
   def index
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate({ ValuesName => @node.values.to_a }) + "\n" ] ]
+      [ JSON.generate({ HostsName => @node.hosts.to_hash }) + "\n" ] ]
   end
 
   # FIND_VALUE
   def find( key )
     key = Key.new(key) rescue Key.for_content(key)
-    values, peers = @node.send( (@request.params['r'] ? :values_for! : :values_for), key )
+    hosts, peers = @node.send( (@request.params['r'] ? :hosts_for! : :hosts_for), key )
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
-      [ JSON.generate({ :key => key.to_s, ValuesName => values, PeersName => peers.map(&:to_hash) }) + "\n" ] ]
+      [ JSON.generate({ :key => key.to_s, HostsName => hosts.map(&:to_hash), PeersName => peers.map(&:to_hash) }) + "\n" ] ]
   end
 
   # STORE
-  def store( key, values )
+  def store( key, hosts )
     return  [ 406, {}, 'Not Acceptable']  unless @request.content_type.split(';')[0] == 'application/json'
 
 # FIXME: authentication
 #return  [ 403, {}, 'Missing Peer URL' ]  unless @peer
 
     key = Key.new(key) rescue Key.for_content(key)
-    values = [values]  unless Array === values
+    hosts = [hosts]  unless Array === hosts
 
     num_stored = 0
-    for value in values
-      num_stored += 1  if @node.store( key, value )
+    for host in hosts
+      num_stored += 1  if @node.store( key, host )
     end
     [ 200, {'Content-Type' => 'application/json;charset=utf-8'},
       [ JSON.generate({ :key => key.to_s, :stored => num_stored }) + "\n" ] ]
@@ -73,17 +72,18 @@ class ValueServer
 
   module PeerInterface
     # FIND_VALUE
-    def values_for( key, from_node )
-      req = EventMachine::HttpRequest.new("#{url}/#{ValuesName}/#{key.to_s}").
+    def hosts_for( key, from_node )
+      req = EventMachine::HttpRequest.new("#{url}/#{HostServer::HostsName}/#{key.to_s}").
             get( :head => { 'X-PEER-URL' => from_node.url.to_s, 'Accept' => 'application/json' } )
-      values, peers = JSON.parse(req.response).values_at(ValuesName, PeerServer::PeersName)
-      peers.map! { |hash|  Peer.new hash['url'], hash['active_at'] }
-      [ values, peers ]
+      hosts, peers = JSON.parse(req.response).values_at( HostServer::HostsName, PeerServer::PeersName )
+      hosts.map! { |hash|  Host.new hash['url'] }
+      peers.map! { |hash|  Peer.new hash['url'] }
+      [ hosts, peers ]
     end
 
     # STORE
     def store( key, val, from_node )
-      res = EventMachine::HttpRequest.new("#{url}/#{ValuesName}/#{key.to_s}").
+      res = EventMachine::HttpRequest.new("#{url}/#{HostServer::HostsName}/#{key.to_s}").
             post( :body => JSON.generate([val]), :head => { 'X-PEER-URL' => from_node.url.to_s, 'Accept' => 'application/json' } )
       JSON.parse req.response
 
@@ -91,7 +91,8 @@ class ValueServer
 
     end
   end
-end
 
+  Peer.send :include, PeerInterface
+end
 
 end

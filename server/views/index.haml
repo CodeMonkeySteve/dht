@@ -1,35 +1,35 @@
 %h1 Peers
 #peers
 
-%h1 Values
-#values
-#new_value
+%h1 Hosts
+#hosts
+#new_host
   %input.key{:type => 'text'}/
   \=
-  %input.value{:type => 'text'}/
-  %button#add_value{ :onclick => 'add_value( $("#new_value .key")[0].value, $("#new_value .value")[0].value );' }
-    Add Value
-#find_value
-  %input.value{:type => 'text', :size => 40}/
-  %button{ :onclick => 'find_value( $("#find_value .value")[0].value );' }
-    Search Values
+  %input.url{:type => 'text'}/
+  %button#add_host{ :onclick => 'add_host( $("#new_host .key")[0].value, $("#new_host .url")[0].value );' }
+    Add Host
+#find_hosts
+  %input.key{:type => 'text', :size => 40}/
+  %button{ :onclick => 'find_hosts( $("#find_hosts .key")[0].value );' }
+    Search Hosts
 
 :javascript
   jQuery(document).ready( function(){
     remote_call({ url: '/peers',  context: $('#peers'),  repeat: 10000 });
 
-    $('#peers'). bind( 'ajax:success', function(status, data, xhr) {  $(this).html(  peer_list_html( data ) );  });
-    $('#values').bind( 'ajax:success', function(status, data, xhr) {  $(this).html( value_list_html( data.key, data.values ) );  });
-    $('#new_value').bind( 'ajax:success', function(status, data, xhr) {  find_value( data.key );  });
+    $('#peers').bind( 'ajax:success', function(status, data, xhr) {  $(this).html( peer_list_html( data ) );  });
+    $('#hosts').bind( 'ajax:success', function(status, data, xhr) {  $(this).html( host_list_html( data.key, data.hosts ) );  });
+    $('#new_host').bind( 'ajax:success', function(status, data, xhr) {  find_hosts( data.key );  });
   });
 
-  function add_value( key, value ) {
-    remote_call({ url: '/values/'+key, type: 'POST', context: $('#add_value'),
-                  data: JSON.stringify([value]), contentType: 'application/json', processData: false });
+  function add_host( key, url ) {
+    remote_call({ url: '/hosts/'+key, type: 'POST', context: $('#add_host'),
+                  data: JSON.stringify([url]), contentType: 'application/json', processData: false });
   }
 
-  function find_value( key ) {
-    remote_call({ url: "/values/"+key+"?r=1", context: $('#values') });
+  function find_hosts( key ) {
+    remote_call({ url: "/hosts/"+key+"?r=1", context: $('#hosts') });
   }
 
   function peer_list_html( peers ) {
@@ -44,15 +44,17 @@
     return html += '</ul>';
   }
 
-  function value_list_html( key, values ) {
-    if ( values.length == 0 ) {
-      return '<em>no values</em>';
+  function host_list_html( key, hosts ) {
+    if ( hosts.length == 0 ) {
+      return '<em>no hosts</em>';
     }
     var html = '<span class="key">'+key+'</span><br/>';
     html += '<ul> ';
-    for ( var i in values ) {
-      var value = values[i];
-      html += '<li>'+value+'</li>';
+    for ( var i in hosts ) {
+      var host = hosts[i];
+      html += '<li>' + host.url;
+      if ( host.active_at ) { html += ' (<span class="active_at">'+host.active_at+'</span>)' }
+      html += '</li>'
     }
     return html += '</ul>';
   }

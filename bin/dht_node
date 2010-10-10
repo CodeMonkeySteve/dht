@@ -9,7 +9,7 @@ require 'optparse'
 require 'rack_ext'
 require 'rack/server'
 require 'dht/peer_server'
-require 'dht/value_server'
+require 'dht/host_server'
 require 'server/ui_server'
 
 $log = $stderr
@@ -42,6 +42,6 @@ Rack::Server.start( :server => 'thin', :Host => url.host, :Port => url.port, :ap
   use Rack::Reloader
   use Rack::FiberPool
   use DHT::PeerServer, node
-  use DHT::ValueServer, node
-  run DHT::UIServer
+  use DHT::HostServer, node
+  run DHT::UIServer.new(node)
 end )

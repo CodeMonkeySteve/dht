@@ -2,7 +2,7 @@ source :gemcutter
 
 # Core
 gem 'sinatra'
-gem 'activesupport', '~> 3.0.0', :require => ['active_support', 'active_support/core_ext']
+gem 'activesupport', '~> 3.1.12', :require => ['active_support', 'active_support/core_ext']
 gem 'haml', '~> 5.1.2', :require => ['haml', 'sass']
 gem 'i18n'
 gem 'json'

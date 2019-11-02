@@ -36,7 +36,7 @@ GEM
       tilt
     hashie (4.0.0)
     i18n (0.4.1)
-    json (1.4.6)
+    json (2.2.0)
     linecache19 (0.5.12)
       ruby_core_source (>= 0.1.4)
     mini_mime (1.0.2)
